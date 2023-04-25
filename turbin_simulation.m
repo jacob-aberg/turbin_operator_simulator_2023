@@ -54,7 +54,7 @@ clc,clear all, close all
     end
 
 
-    bg_bild = imread('bakgrund2.png');
+    bg_bild = imread('bakgrund.png');
     
     [stolpe,~,stolpe_alpha] = imread('stolpe.png');
     
@@ -66,7 +66,7 @@ clc,clear all, close all
         img = imread(imagePath);
         storm_Array{i} = img;
     end
-    folder = 'vindturbin_explosion2';
+    folder = 'vindturbin_explosion';
     imageFiles = dir(fullfile(folder, '*.jpg'));
     fail_Array = cell(1, numel(imageFiles));
     for i = 1:numel(imageFiles)
