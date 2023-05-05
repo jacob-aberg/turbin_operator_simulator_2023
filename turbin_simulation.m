@@ -186,9 +186,9 @@ clc,clear all, close all
 
 % Broms - parameterar
     F_broms = 0; % N bromskraft
-    bromsskiva_radie = 0.5; % m (effektiv radie skivbroms)
+    bromsskiva_radie = 2*0.5; % m (effektiv radie skivbroms)
     bromsskiva_densitet = 7850; % kg / m^3
-    bromsskiva_area = bromsskiva_radie^2*pi; % m^2
+    bromsskiva_area = 4*bromsskiva_radie^2*pi; % m^2
     bromsskiva_tjocklek = 0.05; % m
     bromsskiva_kylningsarea = 0;
     bromsskiva_massa = bromsskiva_area * bromsskiva_tjocklek * bromsskiva_densitet; % kg 
@@ -244,9 +244,9 @@ clc,clear all, close all
 % begynnelsevärden
     vind_hastighet(1) = 0;
     Tip_speed_ratio = 7;
-    w(1) = Tip_speed_ratio * vind_hastighet(1) / blad_lngd;
+    w(1) = 4.670;
     Cp = Cp_kurva(Tip_speed_ratio);
-    Ang_momentum(1) = 0;%I / w(1); 
+    Ang_momentum(1) = 1.2843*10^8;
     temperatur(1) = start_temp;
     friktionstal(1) = my(temperatur(1)); 
     theta = 0;
@@ -290,8 +290,9 @@ for i = 2:length(tid)
 % bromsen
 
     F_broms = 10^6 * get(broms_slider, 'Value') ;
-    if tid(i) > 15
-        F_broms = 2*10^6;
+    
+    if tid(i) > 3
+        F_broms = 1.5*10^6;
     end
 
     % beräknar μ för nuvarande temperatur
@@ -311,7 +312,7 @@ for i = 2:length(tid)
 % Bromsens temperatur
 
     % Värmeutveckling enligt E = ΔΤ * m * C
-    heat_generated = abs(broms_moment(i))  * (abs(w(i-1)) * dt) / ( spec_varme_kap * bromsskiva_massa);
+    heat_generated = abs(broms_moment(i))  * gear_box_ratio*(abs(w(i-1)) * dt) / ( spec_varme_kap * bromsskiva_massa);
 
     % Värmeledning via konvektion E = h * A * (T1-T2)
     E_konvektion = konvektion_koefficent * bromsskiva_area * ( temperatur(i-1) - omgivning_temp ) ;
