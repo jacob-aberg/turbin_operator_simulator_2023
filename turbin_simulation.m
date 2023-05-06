@@ -117,7 +117,7 @@ clc,clear all, close all
                                     'Position', [vxy, 300, 30], 'FontSize',12);
     
     vind_slider = uicontrol('Style', 'slider', 'Min', 0, 'Max', 40, ...
-                       'Value', 0, 'Position', [vxy-[0,20], 300, 20] ...
+                       'Value', 10, 'Position', [vxy-[0,20], 300, 20] ...
                        );
     vind_slider_value = 10;
 
@@ -147,11 +147,11 @@ clc,clear all, close all
     
     % bromsmoment
     ax3 = axes('Position', [0.55, 0.58, 0.19, 0.12]);
-    ax32 = axes('Position', [0.76, 0.58, 0.19, 0.12]);
+    ax32 = axes('Position', [0.78, 0.58, 0.19, 0.12]);
     % temp
     ax2 = axes('Position', [0.55, 0.38, 0.19, 0.12]);
     % friktion 
-    ax4 = axes('Position', [0.76, 0.38, 0.19, 0.12]);
+    ax4 = axes('Position', [0.78, 0.38, 0.19, 0.12]);
     % vind
     ax5 = axes('Position', [0.05, 0.05, 0.90, 0.25]);
     % lamba
@@ -182,7 +182,7 @@ clc,clear all, close all
 
 % Parametrar
     dt = 0.1; % s tidsteg
-    simulation_tid = 25; % s simulationsstid
+    simulation_tid = 200; % s simulationsstid
 
 % Broms - parameterar
     F_broms = 0; % N bromskraft
@@ -190,7 +190,6 @@ clc,clear all, close all
     bromsskiva_densitet = 7850; % kg / m^3
     bromsskiva_area = 4*bromsskiva_radie^2*pi; % m^2
     bromsskiva_tjocklek = 0.05; % m
-    bromsskiva_kylningsarea = 0;
     bromsskiva_massa = bromsskiva_area * bromsskiva_tjocklek * bromsskiva_densitet; % kg 
     
     spec_varme_kap = 420; % J/kg*K (specific värme kapacitet för bromsskivans material)
@@ -244,9 +243,9 @@ clc,clear all, close all
 % begynnelsevärden
     vind_hastighet(1) = 0;
     Tip_speed_ratio = 7;
-    w(1) = 4.670;
+    w(1) = 0;
     Cp = Cp_kurva(Tip_speed_ratio);
-    Ang_momentum(1) = 1.2843*10^8;
+    Ang_momentum(1) = 0;
     temperatur(1) = start_temp;
     friktionstal(1) = my(temperatur(1)); 
     theta = 0;
@@ -255,6 +254,8 @@ clc,clear all, close all
 
     broms_klocka = 0;
     turbolens = 0;
+
+    %F = 10^6 * input('Ange bromskraft [MN]:>>');
 
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -271,14 +272,15 @@ for i = 2:length(tid)
         turbolens_slider_value = turbolens_slider.Value;
         turbolens = turbolens_slider_value;
     end
-    if tid(i) > 1
-        vind_hastighet(i) = 24;
-    end
 
-    Tip_speed_ratio = 7;%TSR( vind_hastighet(i-1), w(i-1), blad_lngd)
-    Cp = Cp_kurva(Tip_speed_ratio);
+
+
+    Tip_speed_ratio = TSR( vind_hastighet(i-1), w(i-1), blad_lngd);
     TSR_vec(i) = Tip_speed_ratio;
-    Cp_vec(i) = Cp;
+    Cp_vec(i) = Cp_kurva(Tip_speed_ratio);
+
+    Tip_speed_ratio = 7;
+    Cp = Cp_kurva(Tip_speed_ratio);
 
     vind_Effekt(i) = 0.5 * luftdensitet * Cp * svept_Area * vind_hastighet(i)^3;
     vind_moment(i) = 0.5 * luftdensitet * Cp * svept_Area * vind_hastighet(i)^2 * blad_lngd;
@@ -291,9 +293,9 @@ for i = 2:length(tid)
 
     F_broms = 10^6 * get(broms_slider, 'Value') ;
     
-    if tid(i) > 3
-        F_broms = 1.5*10^6;
-    end
+    % if tid(i) > 3
+    %     F_broms = F;
+    % end
 
     % beräknar μ för nuvarande temperatur
     friktionstal(i) = my(temperatur(i-1)) ;
@@ -304,11 +306,17 @@ for i = 2:length(tid)
 
 
     % Beräknar bromsmomentet
-    broms_moment(i) = friktionstal(i) * F_broms * bromsskiva_radie  *-1*sign(vind_moment(i));
-    % Begränsar bromsmomentet så det inte kan överstiga vindmomentet ,+ motverkande riktining (bromsmoment är reaktivt)
+    broms_moment(i) = friktionstal(i) * F_broms * bromsskiva_radie ;
+    if Ang_momentum(i-1)==0
+        broms_moment(i) = broms_moment(i)-1*sign(Ang_momentum(i-1));
+    else
+        broms_moment(i) = -1 * broms_moment(i);
+    end
+    % Begränsar bromsmomentet så det inte kan överstiga vindmomentet ,+ motverkande riktining (bromsmoment är reaktivt då)    
     if Ang_momentum(i-1) <= 0
     broms_moment(i) = min( abs(broms_moment(i)) , abs( vind_moment(i) ) ) *-1*sign(vind_moment(i));
     end
+
 % Bromsens temperatur
 
     % Värmeutveckling enligt E = ΔΤ * m * C
@@ -350,10 +358,14 @@ for i = 2:length(tid)
 
     % integrerar momentet i tiden för att få rörelsemängdsmomentet
     Ang_momentum(i) = Ang_momentum(i-1) + total_moment(i)*dt ;
-        
+
+    if Ang_momentum(i) <=0
+        Ang_momentum(i) = 0;
+    end
     % Beräknar vinkelhastigheten utifrån röreslemängdens och tröghetens moment
     w(i) = Ang_momentum(i)/I;
     
+
     if w(i) < 10^(-4) || ~isfinite(w(i))
         w(i) = 0;
     end
@@ -383,22 +395,26 @@ for i = 2:length(tid)
    
     plot(ax2,tid(1:i), temperatur(1:i),LineWidth=2,Color='r');
     xlabel(ax2,'Tid (s)');
-    s = 'Bromsskiva temperatur: '+ string(round(temperatur(i))) +' (°C)';
+    ylabel(ax2,'Temperatur (°C)');
+    s = 'Bromsskivans värmeutveckling';%+ string(round(temperatur(i))) +' (°C)';
     title(ax2,s,FontSize=12);
 
     plot(ax3,tid(1:i), -1*broms_moment(1:i),LineWidth=2);
     xlabel(ax3,'Tid (s)');
-    ylabel(ax3,'Nm');
-    title(ax3,'Broms-Moment',FontSize=12);
+    ylabel(ax3,' Moment (Nm)');
+    title(ax3,'Bromsande moment',FontSize=12);
 
     plot(ax32, tid(1:i), Ang_momentum(1:i) ,LineWidth=2,Color='#4b248c')
     title(ax32,'Rörelsemängdens moment',FontSize=12)
     xlabel(ax32,'Tid (s)');
-    ylabel(ax32,'kg m^2/s');
+    s = "Rörelsemängdsmoment" + newline + "(kg m^2 / s)";
+    ylabel(ax32,s);
     
     plot(ax4,tid(1:i),friktionstal(1:i),LineWidth=2);
-    title(ax4,'Friktionstal bromsskiva: '+string(round(friktionstal(i),2)),FontSize=12);
+    title(ax4,'Friktionstal bromsskiva-bromsbelägg ',FontSize=12);%+string(round(friktionstal(i),2)),FontSize=12);
     ylim(ax4,[0,1])
+    xlabel(ax4,'Tid (s)')
+    ylabel(ax4, 'μ',Rotation=0)
 
     plot(ax11,tid(1:i),TSR_vec(1:i),LineWidth=2);
     title(ax11,'Tip-Speed-ratio (λ)',FontSize=10);
