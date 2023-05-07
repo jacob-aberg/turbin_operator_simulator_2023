@@ -43,11 +43,9 @@ while true
 end
 
 function visualisera()
-disp('Ange önskad upplösning, heltal mellan t.ex. 10 och 1000) (påverkar beräkningstid)')
-s = input('>> ');
 
-vind_vektor = linspace(1,40,s); % 1:1:40;
-kraft_vektor = 10^6*linspace(1,5,s) ;%[ 1:0.1:5 ] ;
+vind_vektor = 1:1:40; 
+kraft_vektor = 10^6*[ 1:0.1:5 ] ;
 
 treD_matris = zeros(numel(vind_vektor),numel(kraft_vektor),2);
 
@@ -104,9 +102,6 @@ ylabel('Bromskraft [N] ')
 zlabel('Temperatur °C')
 title('Max temperatur bromsskiva')
 
-cb2 = colorbar;
-colormap(cb2,jet); % Set the colormap
-ylabel(cb2,'Temperatur (°C)' )
 
 end
 
